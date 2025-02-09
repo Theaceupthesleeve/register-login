@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { collection, addDoc, getDocs, updateDoc, doc, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "../firebaseconfig/config";
+import { auth } from "../firebaseconfig/config"; 
 import { FaRegHeart, FaHeart } from "react-icons/fa";
 import { FaInstagram } from "react-icons/fa";
 import { FiMessageCircle } from "react-icons/fi";
@@ -27,17 +28,26 @@ const InstagramClone = () => {
     };
     fetchPosts();
   }, []);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!text.trim()) return;
+  
     try {
+      const user = auth.currentUser;
+      if (!user) {
+        console.error("User not logged in");
+        return;
+      }
+  
       const docRef = await addDoc(collection(db, "posts"), {
-        text: text,
+        text,
         timestamp: new Date(),
         likes: 0,
+        email: user.email, // Store user email
       });
+  
       setPosts((prevPosts) => [
-        { id: docRef.id, text, timestamp: new Date(), likes: 0 },
+        { id: docRef.id, text, timestamp: new Date(), likes: 0, email: user.email },
         ...prevPosts,
       ]);
       setText("");
@@ -45,6 +55,7 @@ const InstagramClone = () => {
       console.error("Error adding document:", error);
     }
   };
+  
 
   const handleLike = async (postId, currentLikes) => {
     try {
@@ -110,7 +121,7 @@ const InstagramClone = () => {
 
       </aside>
 
-      <div className="flex-1 ml-64 p-8">
+      <div className="flex-1 mr-30 p-8">
       <form onSubmit={handleSubmit} className="bg-white p-4 shadow-md rounded-md w-[500px] mx-auto">
   <input 
     type="text"
@@ -134,18 +145,19 @@ const InstagramClone = () => {
 
   <button 
     type="submit"
-    className="mt-3 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 w-full"
+    className="mt-3 bg-pink-600 text-white py-2 px-4 rounded-md hover:bg-pink-800 w-full"
   >
     Post
   </button>
 </form>
 
 
-        <div className="mt-8 flex flex-col items-center">
+        <div className="mt-10 mr-30flex flex-col items-center">
           {posts.map((post) => (
             <div key={post.id} className="bg-white p-5 shadow-lg rounded-lg w-[500px] mb-4">
-              <p className="font-semibold text-lg">{post.text}</p>
-              <p className="text-sm text-gray-500">{new Date(post.timestamp.seconds * 1000).toLocaleString()}</p>
+            <p className="text-sm text-gray-500">{post.email || "Unknown User"}</p>
+            <p className="font-semibold text-lg">{post.text}</p>
+            <p className="text-sm text-gray-500">{new Date(post.timestamp.seconds * 1000).toLocaleString()}</p>
               <div className="flex justify-between mt-3 items-center">
                 <div className="flex items-center space-x-2">
                   <button onClick={() => handleLike(post.id, post.likes)}>
@@ -162,6 +174,7 @@ const InstagramClone = () => {
               <div className="mt-4 border-t pt-2">
                 {comments[post.id]?.map((comment) => (
                   <p key={comment.id} className="text-sm text-gray-700">{comment.text}</p>
+                  
                 ))}
 
                 <div className="flex items-center mt-2">
@@ -174,7 +187,7 @@ const InstagramClone = () => {
                   />
                   <button 
                     onClick={() => handleAddComment(post.id)}
-                    className="ml-2 bg-pink-800 text-white py-1 px-3 rounded-md hover:bg-pink-600 cu"
+                    className="ml-2 bg-pink-600 text-white py-1 px-3 rounded-md hover:bg-pink-800 pointer"
                   >
                     Post
                   </button>
@@ -182,9 +195,41 @@ const InstagramClone = () => {
               </div>
             </div>
           ))}
-        </div>
+
+          <aside className="fixed right-0 top-0 h-full w-64 bg-white p-6 shadow-lg">
+      <h3 className="text-lg font-semibold mb-4">You might like..</h3>
+      <ul className="space-y-2">
+        <li className="flex items-center space-x-3">
+          <img src="https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.vectorstock.com%2Froyalty-free-vectors%2Fperson-placeholder-vectors&psig=AOvVaw27WparG9EJljbINaar5QyY&ust=1739207886961000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCKCW8buMt4sDFQAAAAAdAAAAABAJ" className="w-9 h-9 rounded-full" />
+          <span className="text-gray-700">John Doe</span><br />
+          <button className="text-blue-500 hover:underline">Follow</button>
+        </li>
+        <li className="flex items-center space-x-3">
+          <img src="https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.vectorstock.com%2Froyalty-free-vectors%2Fperson-placeholder-vectors&psig=AOvVaw27WparG9EJljbINaar5QyY&ust=1739207886961000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCKCW8buMt4sDFQAAAAAdAAAAABAJ" className="w-10 h-10 rounded-full" />
+          <span className="text-gray-700">Jane Smith</span>
+          <button className="text-blue-500 hover:underline">Follow</button>
+        </li>
+      </ul>
+
+      <h3 className="text-lg font-semibold mt-6 mb-4">Upcoming events</h3>
+      <ul className="space-y-2">
+        <li className="text-gray-600 text-sm">🔥 "New Year, New Goals!" - 12k likes</li>
+        <li className="text-gray-600 text-sm">🏆 "Best moments of 2024" - 9k likes</li>
+      </ul>
+
+      <h3 className="text-lg font-semibold mt-6 mb-4">Notifications</h3>
+      <ul className="space-y-2">
+        <li className="text-gray-600 text-sm">💬 Alex commented on your post</li>
+        <li className="text-gray-600 text-sm">❤️ Sarah liked your photo</li>
+      </ul>
+    </aside>
+  </div>
+
+
+        
       </div>
     </div>
+    
   );
 };
 
